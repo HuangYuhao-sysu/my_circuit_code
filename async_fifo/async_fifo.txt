@@ -1,0 +1,131 @@
+// =============================================================================
+// Project Name        : async_fifo
+// Email               : huangyh76@mail2.sysu.edu.cn
+// Company             : Sun Yat-Sen University
+// Create Time         : 2022/06/23
+// File Name           : async_fifo.v
+// Module Name         : async_fifo
+// Designer            : Huangyh
+// Editor              : vs code
+//
+// *****************************************************************************
+// Abstract            : recuirtment circuit training.
+//
+// *****************************************************************************
+//
+// Modification History:
+// Date                By              Version             Change Description
+// -----------------------------------------------------------------------------
+// 2022/06/23       Huangyh             1.0                         none
+//
+// =============================================================================
+
+`timescale 1ns / 1ps
+
+module async_fifo # (
+    parameter DATA_WIDTH = 32,
+    parameter ADDR_WIDTH = 4,
+    parameter DEPTH = 16
+) (
+    input                       wclk,    // Clock
+    input                       wrst_n,  // Asynchronous reset active low
+    input                       wen,
+    input   [DATA_WIDTH-1:0]    wdata,
+
+    input                       rclk,    // Clock
+    input                       rrst_n,  // Asynchronous reset active low
+    input                       ren,
+
+    output  [DATA_WIDTH-1:0]    rdata,
+
+    // full and empty control signal
+    output                      wfull,
+    output                      rempty
+);
+// =========================================================================== \
+// ============================= Internal signals ============================
+// =========================================================================== /
+// mem Inputs
+wire   [ADDR_WIDTH-1:0]  waddr;
+wire   [ADDR_WIDTH-1:0]  raddr;
+
+// sync_w2r Inputs
+wire   [ADDR_WIDTH:0]  wptr;
+
+// sync_w2r Outputs
+wire  [ADDR_WIDTH:0]  rwptr2;
+
+// sync_r2w Inputs
+wire   [ADDR_WIDTH:0]  rptr;
+
+// sync_r2w Outputs
+wire  [ADDR_WIDTH:0]  wrptr2;
+
+// =========================================================================== \
+// --------------------------------- Main Code ---------------------------------
+// =========================================================================== /
+
+//==============================================================================
+// mem instance
+//==============================================================================
+mem #(
+    .DATA_WIDTH ( DATA_WIDTH ),
+    .ADDR_WIDTH ( ADDR_WIDTH  ),
+    .DEPTH      ( DEPTH ))
+ u_mem (
+    .wclk                    ( wclk    ),
+    .wen                     ( wen     ),
+    .waddr                   ( waddr   ),
+    .wdata                   ( wdata   ),
+    .raddr                   ( raddr   ),
+
+    .rdata                   ( rdata   )
+);
+
+sync_w2r #(
+    .ADDR_WIDTH ( ADDR_WIDTH ))
+ u_sync_w2r (
+    .rclk                    ( rclk     ),
+    .rrst_n                  ( rrst_n   ),
+    .wptr                    ( wptr     ),
+
+    .rwptr2                  ( rwptr2   )
+);
+
+sync_r2w #(
+    .ADDR_WIDTH ( ADDR_WIDTH ))
+ u_sync_r2w (
+    .wclk                    ( wclk     ),
+    .wrst_n                  ( wrst_n   ),
+    .rptr                    ( rptr     ),
+
+    .wrptr2                  ( wrptr2   )
+);
+
+wptr_full #(
+    .ADDR_WIDTH ( ADDR_WIDTH ))
+ u_wptr_full (
+    .wclk                    ( wclk     ),
+    .wrst_n                  ( wrst_n   ),
+    .wen                     ( wen      ),
+    .wrptr2                  ( wrptr2   ),
+
+    .wfull                   ( wfull    ),
+    .wptr                    ( wptr     ),
+    .waddr                   ( waddr    )
+);
+
+rptr_empty #(
+    .ADDR_WIDTH ( ADDR_WIDTH ))
+ u_rptr_empty (
+    .rclk                    ( rclk     ),
+    .rrst_n                  ( rrst_n   ),
+    .ren                     ( ren      ),
+    .rwptr2                  ( rwptr2   ),
+
+    .rempty                  ( rempty   ),
+    .rptr                    ( rptr     ),
+    .raddr                   ( raddr    )
+);
+
+endmodule

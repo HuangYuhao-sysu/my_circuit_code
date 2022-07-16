@@ -1,0 +1,61 @@
+// =============================================================================
+// Project Name        : async_fifo
+// Email               : huangyh76@mail2.sysu.edu.cn
+// Company             : Sun Yat-Sen University
+// Create Time         : 2022/06/22
+// File Name           : sync_w2r.v
+// Module Name         : sync_w2r
+// Designer            : Huangyh
+// Editor              : vs code
+//
+// *****************************************************************************
+// Abstract            : recuirtment circuit training.
+//
+// *****************************************************************************
+//
+// Modification History:
+// Date                By              Version             Change Description
+// -----------------------------------------------------------------------------
+// 2022/06/22       Huangyh             1.0                         none
+//
+// =============================================================================
+
+`timescale 1ns / 1ps
+
+module sync_w2r #(
+    parameter ADDR_WIDTH = 4
+) (
+    input       rclk,                   // Clock
+    input       rrst_n,                 // Asynchronous reset active low
+    input       [ADDR_WIDTH:0]  wptr,   // gray code of write ptr + 1 bit
+
+    // synced gray code of write ptr to read clock domian.
+    output  reg [ADDR_WIDTH:0]  rwptr2  
+);
+
+// =========================================================================== \
+// ============================= Internal signals ============================
+// =========================================================================== /
+reg [ADDR_WIDTH:0]    rwptr1;
+
+// =========================================================================== \
+// --------------------------------- Main Code ---------------------------------
+// =========================================================================== /
+
+//==============================================================================
+// two stage sync
+//==============================================================================
+always @(posedge rclk or negedge rrst_n) begin
+    if (rrst_n == 1'b0) begin
+        // reset
+        rwptr1 <= 0;
+        rwptr2 <= 0;
+    end
+
+    else begin
+        rwptr1 <= wptr;
+        rwptr2 <= rwptr1;
+    end
+end
+
+endmodule

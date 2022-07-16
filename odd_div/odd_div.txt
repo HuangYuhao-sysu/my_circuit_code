@@ -1,0 +1,119 @@
+// =============================================================================
+// Project Name        : odd_div
+// Email               : huangyh76@mail2.sysu.edu.cn
+// Company             : Sun Yat-Sen University
+// Create Time         : 2022/06/24
+// File Name           : odd_div.v
+// Module Name         : odd_div
+// Designer            : Huangyh
+// Editor              : vs code
+//
+// *****************************************************************************
+// Abstract            : recuitment code training
+//
+// *****************************************************************************
+//
+// Modification History:
+// Date                By              Version             Change Description
+// -----------------------------------------------------------------------------
+// 2022/06/24       Huangyh             1.0                         none
+//
+// =============================================================================
+
+`timescale 1ns / 1ps
+
+module odd_div (
+    input   clk,    // Clock
+    input   rst_n,  // Asynchronous reset active low
+
+    output  odd_div_clk
+);
+
+// =========================================================================== \
+// ============================== Define parameter ===========================
+// =========================================================================== /
+parameter DIV_NUM = 3;
+parameter CNT_WIDTH = 16;
+
+// =========================================================================== \
+// ============================= Internal signals ============================
+// =========================================================================== /
+reg [CNT_WIDTH-1:0] posedge_cnt;
+reg [CNT_WIDTH-1:0] negedge_cnt;
+reg                 posedge_div_clk;
+reg                 negedge_div_clk;
+
+// =========================================================================== \
+// --------------------------------- Main Code ---------------------------------
+// =========================================================================== /
+
+//==============================================================================
+// posedge cnt generated
+//==============================================================================
+always @(posedge clk or negedge rst_n) begin
+    if (rst_n == 1'b0) begin
+        // reset
+        posedge_cnt <=  0;
+    end
+
+    else if (posedge_cnt == DIV_NUM-1) begin
+        posedge_cnt <=  0;
+    end
+
+    else begin
+        posedge_cnt <=  posedge_cnt + 1;
+    end
+end
+
+//==============================================================================
+// posedge clk generated
+//==============================================================================
+always @(posedge clk or negedge rst_n) begin
+    if (rst_n == 1'b0) begin
+        // reset
+        posedge_div_clk <=  1;
+    end
+
+    else if ((posedge_cnt == (DIV_NUM-3)/2) || (posedge_cnt == DIV_NUM-1)) begin
+        posedge_div_clk <=  ~posedge_div_clk;
+    end
+end
+
+//==============================================================================
+// negedge cnt generated
+//==============================================================================
+always @(negedge clk or negedge rst_n) begin
+    if (rst_n == 1'b0) begin
+        // reset
+        negedge_cnt <=  0;
+    end
+
+    else if (negedge_cnt == DIV_NUM-1) begin
+        negedge_cnt <=  0;
+    end
+
+    else begin
+        negedge_cnt <=  negedge_cnt + 1;
+    end
+end
+
+//==============================================================================
+// negedge clk generated
+//==============================================================================
+always @(negedge clk or negedge rst_n) begin
+    if (rst_n == 1'b0) begin
+        // reset
+        negedge_div_clk <=  1;
+    end
+
+    else if ((negedge_cnt == (DIV_NUM-3)/2) || (negedge_cnt == DIV_NUM-1)) begin
+        negedge_div_clk <=  ~negedge_div_clk;
+    end
+end
+
+//==============================================================================
+// odd_div generated
+//==============================================================================
+assign  odd_div_clk =   negedge_div_clk | posedge_div_clk;
+
+endmodule

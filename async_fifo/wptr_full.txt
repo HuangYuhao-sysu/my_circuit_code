@@ -1,0 +1,107 @@
+// =============================================================================
+// Project Name        : async_fifo
+// Email               : huangyh76@mail2.sysu.edu.cn
+// Company             : Sun Yat-Sen University
+// Create Time         : 2022/06/22
+// File Name           : wptr_full.v
+// Module Name         : wptr_full
+// Designer            : Huangyh
+// Editor              : vs code
+//
+// *****************************************************************************
+// Abstract            : recuirtment circuit training.
+//
+// *****************************************************************************
+//
+// Modification History:
+// Date                By              Version             Change Description
+// -----------------------------------------------------------------------------
+// 2022/06/22       Huangyh             1.0                         none
+//
+// =============================================================================
+
+`timescale 1ns / 1ps
+
+module wptr_full #(
+    parameter ADDR_WIDTH = 4
+) (
+    input                           wclk,   // Clock
+    input                           wrst_n, // Asynchronous reset active low
+    input                           wen,    // write enable
+    input       [ADDR_WIDTH:0]      wrptr2, // gray code of synced read ptr + 1b
+
+    output  reg                     wfull,  // active high
+    output      [ADDR_WIDTH:0]      wptr,   // gray code to read clock domain
+    output      [ADDR_WIDTH-1:0]    waddr   // to mem addr
+);
+
+// =========================================================================== \
+// ============================= Internal signals ============================
+// =========================================================================== /
+reg     [ADDR_WIDTH:0]  wptr_binary;
+wire    [ADDR_WIDTH:0]  wrptr2_binary;
+
+// =========================================================================== \
+// --------------------------------- Main Code ---------------------------------
+// =========================================================================== /
+
+//==============================================================================
+// gray code wrptr2 to binary
+//==============================================================================
+generate
+    genvar i;
+    assign  wrptr2_binary[ADDR_WIDTH]   =   wrptr2[ADDR_WIDTH];
+    for ( i = ADDR_WIDTH-1; i >= 0; i = i - 1) begin
+        assign  wrptr2_binary[i]    =   wrptr2_binary[i+1] ^ wrptr2[i];
+    end
+endgenerate
+
+//==============================================================================
+// wptr_binary generated
+//==============================================================================
+always @(posedge wclk or negedge wrst_n) begin
+    if (wrst_n == 1'b0) begin
+        // reset
+        wptr_binary <=  0;
+    end
+
+    else if (wrptr2_binary - {~wptr_binary[ADDR_WIDTH],
+        wptr_binary[ADDR_WIDTH-1:0]} == 1) begin    // write full
+        wptr_binary <=  wptr_binary;
+    end
+
+    else if (wen == 1'b1) begin
+        wptr_binary <=  wptr_binary + 1;
+    end
+end
+
+//==============================================================================
+// wfull generated
+//==============================================================================
+always @(posedge wclk or negedge wrst_n) begin
+    if (wrst_n == 1'b0) begin
+        // reset
+        wfull   <=  0;
+    end
+
+    else if (wrptr2_binary - {~wptr_binary[ADDR_WIDTH],
+        wptr_binary[ADDR_WIDTH-1:0]} == 1) begin    // write full
+        wfull   <=  1;
+    end
+
+    else begin
+        wfull   <=  0;
+    end
+end
+
+//==============================================================================
+// gray code wptr generated
+//==============================================================================
+assign  wptr    =   (wptr_binary >> 1) ^ wptr_binary;
+
+//==============================================================================
+// waddr to mem generated
+//==============================================================================
+assign  waddr   =   wptr_binary[ADDR_WIDTH-1:0];
+
+endmodule

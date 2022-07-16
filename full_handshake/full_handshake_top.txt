@@ -1,0 +1,74 @@
+// =============================================================================
+// Project Name         : full_handshake
+// Email                : huangyh76@mail2.sysu.edu.cn
+// Company              : Sun Yat-Sen University
+// Create Time          : 2021/8/25
+// File Name            : full_handshake_top.v
+// Module Name          : full_handshake_top
+// Designer             : Huangyh
+// Editor               : sublime text 3
+//
+// ******************************************************************************
+// Abstract             : top of full handshake.
+//
+// ******************************************************************************
+//
+// Modification History:
+// Date                By                Version                Change Description
+// ------------------------------------------------------------------------------
+// 2021/8/25        Huangyh                 1.0                         none
+//
+// ==============================================================================
+
+module full_handshake_top (
+    input clk_t,    // Clock
+    input rst_n_t,  // Asynchronous reset active low
+
+    input clk_r,    // Clock
+    input rst_n_r,  // Asynchronous reset active low
+
+    input din_val,
+    input [31:0] din,
+
+    output dout_val,
+    output [31:0] dout
+);
+
+// ============================================================================== \
+// ============================= Internal signals ===============================
+// ============================================================================== /
+wire         ack;
+wire         req;
+wire         dout_val_t;
+wire [31:0] dout_t;
+
+// ============================================================================== \
+// --------------------------------- Main Code ------------------------------------
+// ============================================================================== /
+
+//=================================================================================
+// module instance
+//=================================================================================
+handshake_tclk u_handshake_tclk (
+    .clk     (clk_t     ),
+    .rst_n   (rst_n_t   ),
+    .din_val (din_val   ),
+    .din     (din       ),
+    .ack     (ack       ),
+    .req     (req       ),
+    .dout_val(dout_val_t),
+    .dout    (dout_t    )
+);
+
+handshake_rclk u_handshake_rclk (
+    .clk     (clk_r     ),
+    .rst_n   (rst_n_r   ),
+    .req     (req       ),
+    .din     (dout_t    ),
+    .din_val (dout_val_t),
+    .ack     (ack       ),
+    .dout    (dout      ),
+    .dout_val(dout_val  )
+);
+
+endmodule

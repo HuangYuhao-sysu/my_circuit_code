@@ -1,0 +1,84 @@
+// =============================================================================
+// Project Name        : sync_fifo
+// Email               : huangyh76@mail2.sysu.edu.cn
+// Company             : Sun Yat-Sen University
+// Create Time         : 2022/06/23
+// File Name           : sync_fifo.v
+// Module Name         : sync_fifo
+// Designer            : Huangyh
+// Editor              : vs code
+//
+// *****************************************************************************
+// Abstract            : recruitment code training
+//
+// *****************************************************************************
+//
+// Modification History:
+// Date                By              Version             Change Description
+// -----------------------------------------------------------------------------
+// 2022/06/23       Huangyh             1.0                         none
+//
+// =============================================================================
+
+`timescale 1ns / 1ps
+
+module sync_fifo #(
+    parameter DATA_WIDTH = 32,
+    parameter ADDR_WIDTH = 4,
+    parameter DEPTH = 16
+) (
+    input                           clk,    // Clock
+    input                           rst_n,  // Asynchronous reset active low
+    input                           wen,
+    input                           ren,
+    input   [DATA_WIDTH-1:0]        wdata,
+
+    output  [DATA_WIDTH-1:0]        rdata,
+    output                          wfull,
+    output                          rempty
+);
+
+// =========================================================================== \
+// ============================= Internal signals ============================
+// =========================================================================== /
+wire  [ADDR_WIDTH-1:0]  waddr;
+wire  [ADDR_WIDTH-1:0]  raddr;
+
+// =========================================================================== \
+// --------------------------------- Main Code ---------------------------------
+// =========================================================================== /
+
+//==============================================================================
+// instance
+//==============================================================================
+rw_ctrl #(
+    .ADDR_WIDTH ( 4  ),
+    .DEPTH      ( 16 ))
+ u_rw_ctrl (
+    .clk                     ( clk      ),
+    .rst_n                   ( rst_n    ),
+    .wen                     ( wen      ),
+    .ren                     ( ren      ),
+
+    .waddr                   ( waddr    ),
+    .raddr                   ( raddr    ),
+    .wfull                   ( wfull    ),
+    .rempty                  ( rempty   )
+);
+
+mem #(
+    .DATA_WIDTH ( 32 ),
+    .ADDR_WIDTH ( 4  ),
+    .DEPTH      ( 16 ))
+ u_mem (
+    .clk                     ( clk     ),
+    .waddr                   ( waddr   ),
+    .wen                     ( wen     ),
+    .wdata                   ( wdata   ),
+    .raddr                   ( raddr   ),
+    .ren                     ( ren     ),
+
+    .rdata                   ( rdata   )
+);
+
+endmodule

@@ -1,0 +1,132 @@
+// =============================================================================
+// Project Name        : sync_fifo
+// Email               : huangyh76@mail2.sysu.edu.cn
+// Company             : Sun Yat-Sen University
+// Create Time         : 2022/06/23
+// File Name           : rw_ctrl.v
+// Module Name         : rw_ctrl
+// Designer            : Huangyh
+// Editor              : vs code
+//
+// *****************************************************************************
+// Abstract            : recruitment code training
+//
+// *****************************************************************************
+//
+// Modification History:
+// Date                By              Version             Change Description
+// -----------------------------------------------------------------------------
+// 2022/06/23       Huangyh             1.0                         none
+//
+// =============================================================================
+
+`timescale 1ns / 1ps
+
+module rw_ctrl #(
+    parameter ADDR_WIDTH = 4,
+    parameter DEPTH = 16
+) (
+    input                           clk,    // Clock
+    input                           rst_n,  // Asynchronous reset active low
+    input                           wen,
+    input                           ren,
+
+    output  reg [ADDR_WIDTH-1:0]    waddr,
+    output  reg [ADDR_WIDTH-1:0]    raddr,
+    output  reg                     wfull,
+    output  reg                     rempty
+);
+
+// =========================================================================== \
+// ============================= Internal signals ============================
+// =========================================================================== /
+reg [ADDR_WIDTH-1:0]    fifo_cnt;
+
+// =========================================================================== \
+// --------------------------------- Main Code ---------------------------------
+// =========================================================================== /
+
+//==============================================================================
+// waddr generated
+//==============================================================================
+always @(posedge clk or negedge rst_n) begin
+    if (rst_n == 1'b0) begin
+        // reset
+        waddr   <= 0;
+    end
+
+    else if (wen && ~wfull) begin
+        waddr   <=  waddr + 1;
+    end
+end
+
+//==============================================================================
+// raddr generated
+//==============================================================================
+always @(posedge clk or negedge rst_n) begin
+    if (rst_n == 1'b0) begin
+        // reset
+        raddr   <= 0;
+    end
+
+    else if (ren && ~rempty) begin
+        raddr   <=  raddr + 1;
+    end
+end
+
+//==============================================================================
+// fifo cnt, waddr + 1 -> cnt + 1, raddr + 1 -> cnt - 1, rempty when cnt = 0,
+// wfull when cnt == 16.
+//==============================================================================
+always @(posedge clk or negedge rst_n) begin
+    if (rst_n == 1'b0) begin
+        // reset
+        fifo_cnt    <= 0;
+    end
+
+    else if (wen && ~wfull) begin
+        fifo_cnt   <=  fifo_cnt + 1;
+    end
+
+    else if (ren && ~rempty) begin
+        fifo_cnt   <=  fifo_cnt - 1;
+    end
+end
+
+//==============================================================================
+// rempty generated
+//==============================================================================
+always @(posedge clk or negedge rst_n) begin
+    if (rst_n == 1'b0) begin
+        // reset
+        rempty  <= 0;
+    end
+
+    else if (fifo_cnt == 0) begin
+        rempty  <= 1;
+    end
+
+    else begin
+        rempty  <= 0;
+    end
+end
+
+//==============================================================================
+// wfull generated
+//==============================================================================
+always @(posedge clk or negedge rst_n) begin
+    if (rst_n == 1'b0) begin
+        // reset
+        wfull  <= 0;
+    end
+
+    else if (fifo_cnt == 15) begin
+        wfull  <= 1;
+    end
+
+    else begin
+        wfull  <= 0;
+    end
+end
+
+endmodule

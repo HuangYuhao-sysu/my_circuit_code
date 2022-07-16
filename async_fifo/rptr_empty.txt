@@ -1,0 +1,105 @@
+// =============================================================================
+// Project Name        : async_fifo
+// Email               : huangyh76@mail2.sysu.edu.cn
+// Company             : Sun Yat-Sen University
+// Create Time         : 2022/06/23
+// File Name           : rptr_empty.v
+// Module Name         : rptr_empty
+// Designer            : Huangyh
+// Editor              : vs code
+//
+// *****************************************************************************
+// Abstract            : recuirtment circuit training.
+//
+// *****************************************************************************
+//
+// Modification History:
+// Date                By              Version             Change Description
+// -----------------------------------------------------------------------------
+// 2022/06/23       Huangyh             1.0                         none
+//
+// =============================================================================
+
+`timescale 1ns / 1ps
+
+module rptr_empty #(
+    parameter ADDR_WIDTH = 4
+) (
+    input                           rclk,   // Clock
+    input                           rrst_n, // Asynchronous reset active low
+    input                           ren,    // read enable
+    input       [ADDR_WIDTH:0]      rwptr2, // gray code of synced write ptr+1b
+
+    output  reg                     rempty, // active high
+    output      [ADDR_WIDTH:0]      rptr,   // gray code to write clock domain
+    output      [ADDR_WIDTH-1:0]    raddr   // to mem addr
+);
+
+// =========================================================================== \
+// ============================= Internal signals ============================
+// =========================================================================== /
+reg     [ADDR_WIDTH:0]  rptr_binary;
+wire    [ADDR_WIDTH:0]  rwptr2_binary;
+
+// =========================================================================== \
+// --------------------------------- Main Code ---------------------------------
+// =========================================================================== /
+
+//==============================================================================
+// gray code rwptr2 to binary
+//==============================================================================
+generate
+    genvar i;
+    assign  rwptr2_binary[ADDR_WIDTH]   =   rwptr2[ADDR_WIDTH];
+    for ( i = ADDR_WIDTH-1; i >= 0; i = i - 1) begin
+        assign  rwptr2_binary[i]    =   rwptr2_binary[i+1] ^ rwptr2[i];
+    end
+endgenerate
+
+//==============================================================================
+// rptr_binary generated
+//==============================================================================
+always @(posedge rclk or negedge rrst_n) begin
+    if (rrst_n == 1'b0) begin
+        // reset
+        rptr_binary <=  0;
+    end
+
+    else if (rwptr2_binary - rptr_binary == 1) begin    // read empty
+        rptr_binary <=  rptr_binary;
+    end
+
+    else if (ren == 1'b1) begin
+        rptr_binary <=  rptr_binary + 1;
+    end
+end
+
+//==============================================================================
+// rempty generated
+//==============================================================================
+always @(posedge rclk or negedge rrst_n) begin
+    if (rrst_n == 1'b0) begin
+        // reset
+        rempty  <=  0;
+    end
+
+    else if (rwptr2_binary - rptr_binary == 1) begin    // read empty
+        rempty  <=  1;
+    end
+
+    else begin
+        rempty  <=  0;
+    end
+end
+
+//==============================================================================
+// gray code rptr generated
+//==============================================================================
+assign  rptr    =   (rptr_binary >> 1) ^ rptr_binary;
+
+//==============================================================================
+// raddr to mem generated
+//==============================================================================
+assign  raddr   =   rptr_binary[ADDR_WIDTH-1:0];
+
+endmodule

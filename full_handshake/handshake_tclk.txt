@@ -1,0 +1,193 @@
+// =============================================================================
+// Project Name         : full_handshake
+// Email                : huangyh76@mail2.sysu.edu.cn
+// Company              : Sun Yat-Sen University
+// Create Time          : 2021/8/25
+// File Name            : handshake_tclk.v
+// Module Name          : handshake_tclk
+// Designer             : Huangyh
+// Editor               : sublime text 3
+//
+// ******************************************************************************
+// Abstract             : full handshake tclk.three states including idle, assert_ack
+//                            deassert_ack.
+// ******************************************************************************
+//
+// Modification History:
+// Date                By                Version                Change Description
+// ------------------------------------------------------------------------------
+// 2021/8/25        Huangyh                 1.0                         none
+//
+// ==============================================================================
+
+module handshake_tclk (
+    input             clk,    // Clock
+    input             rst_n,  // Asynchronous reset active low
+
+    //=================================================================================
+    // from presuccess tclk domin
+    //=================================================================================
+    input             din_val, //data valid
+    input [31:0]     din,
+
+    //=================================================================================
+    // from handshake_rclk
+    //=================================================================================
+    input             ack,
+
+    //=================================================================================
+    // to handshake_rclk
+    //=================================================================================
+    output             req,
+    output             dout_val,
+    output [31:0]     dout
+);
+
+// ============================================================================== \
+// ============================== Define parameter ==============================
+// ============================================================================== /
+localparam IDLE         = 3'b001;
+localparam ASSERT_REQ     = 3'b010;
+localparam DEASSERT_REQ = 3'b100;
+
+// ============================================================================== \
+// ============================= Internal signals ===============================
+// ============================================================================== /
+
+//=================================================================================
+// output reg
+//=================================================================================
+reg         r_req;
+reg         r_dout_val;
+reg [31:0]     r_dout;
+
+//=================================================================================
+// sync ack which is different clk domin
+//=================================================================================
+reg         r1_ack;
+reg         r2_ack;
+
+//=================================================================================
+// FSM reg
+//=================================================================================
+reg [2:0]     current_state;
+reg [2:0]     next_state;
+
+// ============================================================================== \
+// --------------------------------- Main Code ------------------------------------
+// ============================================================================== /
+assign dout     = r_dout;
+assign dout_val = r_dout_val;
+assign req         = r_req;
+
+//=================================================================================
+// sync ack
+//=================================================================================
+always @(posedge clk or negedge rst_n) begin
+    if (~rst_n) begin
+        // reset
+        r1_ack <= 0;
+        r2_ack <= 0;
+    end
+
+    else begin
+        r1_ack <= ack;
+        r2_ack <= r1_ack;
+    end
+end
+
+//=================================================================================
+// FSM state transform
+//=================================================================================
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+        // reset
+        current_state <= IDLE;
+    end
+
+    else begin
+        current_state <= next_state;
+    end
+end
+
+//=================================================================================
+// FSM next state
+//=================================================================================
+always @(*) begin
+    case (current_state)
+        IDLE: begin
+            if (din_val) begin
+                next_state = ASSERT_REQ;
+            end
+
+            else begin
+                next_state = IDLE;
+            end
+        end
+
+        ASSERT_REQ: begin
+            if (r2_ack) begin
+                next_state = DEASSERT_REQ;
+            end
+
+            else begin
+                next_state = ASSERT_REQ;
+            end
+        end
+
+        DEASSERT_REQ: begin
+            if (!r2_ack) begin
+                next_state = IDLE;
+            end
+
+            else begin
+                next_state = DEASSERT_REQ;
+            end
+        end
+        default : next_state = IDLE;
+    endcase
+end
+
+//=================================================================================
+// FSM output
+//=================================================================================
+always @(posedge clk or negedge rst_n) begin : proc_req
+    if(~rst_n) begin
+        r_req <= 0;
+    end
+
+    else if (next_state == ASSERT_REQ) begin
+        r_req <= 1;
+    end
+
+    else if (next_state == DEASSERT_REQ) begin
+        r_req <= 0;
+    end
+
+    else if (next_state == IDLE) begin
+        r_req <= 0;
+    end
+end
+
+always @(posedge clk or negedge rst_n) begin : proc_dout
+    if(~rst_n) begin
+        r_dout         <= 0;
+        r_dout_val     <= 0;
+    end
+
+    else if (next_state == ASSERT_REQ) begin
+        r_dout         <= din;
+        r_dout_val     <= din_val;
+    end
+
+    else if (next_state == DEASSERT_REQ) begin
+        r_dout         <= 0;
+        r_dout_val     <= 0;
+    end
+
+    else if (next_state == IDLE) begin
+        r_dout         <= 0;
+        r_dout_val     <= 0;
+    end
+end
+endmodule : handshake_tclk

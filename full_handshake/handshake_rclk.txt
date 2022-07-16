@@ -1,0 +1,165 @@
+// =============================================================================
+// Project Name         : full_handshake_top
+// Email                : huangyh76@mail2.sysu.edu.cn
+// Company              : Sun Yat-Sen University
+// Create Time          : 2021/8/25
+// File Name            : handshake_rclk.v
+// Module Name          : handshake_rclk
+// Designer             : Huangyh
+// Editor               : sublime text 3
+//
+// ******************************************************************************
+// Abstract             : full handshake rclk.two states including idle, assert_ack
+//                            deassert_ack.
+// ******************************************************************************
+//
+// Modification History:
+// Date                By                Version                Change Description
+// ------------------------------------------------------------------------------
+// 2021/8/25        Huangyh                 1.0                         none
+//
+// ==============================================================================
+
+module handshake_rclk (
+    input             clk,    // Clock
+    input             rst_n,  // Asynchronous reset active low
+
+    input             req,
+    input [31:0]     din,
+    input             din_val,
+
+    output             ack,
+    output [31:0]     dout,
+    output             dout_val
+);
+
+// ============================================================================== \
+// ============================== Define parameter ==============================
+// ============================================================================== /
+localparam IDLE         = 2'b01;
+localparam ASSERT_ACK     = 2'b10;
+
+// ============================================================================== \
+// ============================= Internal signals ===============================
+// ============================================================================== /
+
+//=================================================================================
+// state
+//=================================================================================
+reg [1:0] current_state;
+reg [1:0] next_state;
+
+//=================================================================================
+// output reg
+//=================================================================================
+reg         r_ack;
+reg         r_ack_nxt;
+reg [31:0]     r_dout;
+reg [31:0]     r_dout_nxt;
+reg         r_dout_val;
+reg         r_dout_val_nxt;
+
+//=================================================================================
+// sync req
+//=================================================================================
+reg r1_req;
+reg r2_req;
+
+// ============================================================================== \
+// --------------------------------- Main Code ------------------------------------
+// ============================================================================== /
+assign ack         = r_ack;
+assign dout     = r_dout;
+assign dout_val = r_dout_val;
+
+always @(posedge clk or negedge rst_n) begin : proc_req
+    if (~rst_n) begin
+        // reset
+        r1_req <= 0;
+        r2_req <= 0;
+    end
+
+    else begin
+        r1_req <= req;
+        r2_req <= r1_req;
+    end
+end
+
+//=================================================================================
+// FSM state transform
+//=================================================================================
+always @(posedge clk or negedge rst_n) begin : proc_current_state
+    if (~rst_n) begin
+        // reset
+        current_state <= IDLE;
+    end
+
+    else begin
+        current_state <= next_state;
+    end
+end
+
+//=================================================================================
+// next_state & nxt value
+//=================================================================================
+always @(*) begin : proc_next_state
+    case (current_state)
+        IDLE: begin
+            if (r2_req) begin
+                next_state = ASSERT_ACK;
+                r_ack_nxt = 1;
+                r_dout_nxt = din;
+                r_dout_val_nxt = din_val;
+            end
+
+            else begin
+                next_state = IDLE;
+                r_ack_nxt = 0;
+                r_dout_nxt = 0;
+                r_dout_val_nxt = 0;
+            end
+        end
+
+        ASSERT_ACK: begin
+            if (~r2_req) begin
+                next_state = IDLE;
+                r_ack_nxt = 0;
+                r_dout_nxt = 0;
+                r_dout_val_nxt = 0;
+            end
+
+            else begin
+                next_state = ASSERT_ACK;
+                r_ack_nxt = 1;
+                r_dout_nxt = din;
+                r_dout_val_nxt = din_val;
+            end
+        end
+
+        default : begin
+            next_state = IDLE;
+            r_ack_nxt = 0;
+            r_dout_nxt = 0;
+            r_dout_val_nxt = 0;
+        end
+    endcase
+end
+
+//=================================================================================
+// output
+//=================================================================================
+always @(posedge clk or negedge rst_n) begin : proc_ack
+    if (~rst_n) begin
+        // reset
+        r_ack <= 0;
+        r_dout <= 0;
+        r_dout_val <= 0;
+    end
+
+    else begin
+        r_ack <= r_ack_nxt;
+        r_dout <= r_dout_nxt;
+        r_dout_val <= r_dout_val_nxt;
+    end
+end
+endmodule

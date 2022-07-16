@@ -1,0 +1,52 @@
+// =============================================================================
+// Project Name        : priority arbiter
+// Email               : huangyh76@mail2.sysu.edu.cn
+// Company             : Sun Yat-Sen University
+// Create Time         : 2022/06/25
+// File Name           : priority_arbiter.v
+// Module Name         : priority_arbiter
+// Designer            : Huangyh
+// Editor              : vs code
+//
+// *****************************************************************************
+// Abstract            : recruitment code training
+//
+// *****************************************************************************
+//
+// Modification History:
+// Date                By              Version             Change Description
+// -----------------------------------------------------------------------------
+// 2022/06/25       Huangyh             1.0                         none
+//
+// =============================================================================
+
+`timescale 1ns / 1ps
+
+module priority_arbiter #(
+    parameter REQ_WIDTH = 8
+) (
+    input       [REQ_WIDTH-1:0] req,
+    output  reg [REQ_WIDTH-1:0] gnt
+);
+
+// =========================================================================== \
+// --------------------------------- Main Code ---------------------------------
+// =========================================================================== /
+//always @(*) begin
+//    case (1'b1)
+//        req[0]:     gnt =   4'b0001;
+//        req[1]:     gnt =   4'b0010;
+//        req[2]:     gnt =   4'b0100;
+//        req[3]:     gnt =   4'b1000;
+//        default :   gnt =   4'b0000;
+//    endcase
+//end
+
+//==============================================================================
+// advanced approach
+//==============================================================================
+always @(*) begin
+    gnt =   req & (~(req-1));
+end
+
+endmodule

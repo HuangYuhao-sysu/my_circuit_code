@@ -1,0 +1,106 @@
+// =============================================================================
+// Project Name        : bitstream_detector
+// Email               : huangyh76@mail2.sysu.edu.cn
+// Company             : Sun Yat-Sen University
+// Create Time         : 2022/06/23
+// File Name           : bitsteam_detector.v
+// Module Name         : bitsteam_detector
+// Designer            : Huangyh
+// Editor              : vs code
+//
+// *****************************************************************************
+// Abstract            : recruitment code training, detect 10010
+//
+// *****************************************************************************
+//
+// Modification History:
+// Date                By              Version             Change Description
+// -----------------------------------------------------------------------------
+// 2022/06/23       Huangyh             1.0                         none
+//
+// =============================================================================
+
+`timescale 1ns / 1ps
+
+module bitsteam_detector (
+    input       clk,    // Clock
+    input       rst_n,  // Asynchronous reset active low
+
+    input       din,
+    output  reg flag
+);
+
+// =========================================================================== \
+// ============================== Define parameter ===========================
+// =========================================================================== /
+localparam idle = 0;
+localparam bit1 = 1;
+localparam bit2 = 2;
+localparam bit3 = 3;
+localparam bit4 = 4;
+localparam bit5 = 5;
+
+// =========================================================================== \
+// ============================= Internal signals ============================
+// =========================================================================== /
+reg [2:0]   state;
+reg [2:0]   next_state;
+
+// =========================================================================== \
+// --------------------------------- Main Code ---------------------------------
+// =========================================================================== /
+
+//==============================================================================
+// state tranform
+//==============================================================================
+always @(posedge clk or negedge rst_n) begin
+    if (rst_n == 1'b0) begin
+        // reset
+        state   <= idle;
+    end
+
+    else begin
+        state   <= next_state;
+    end
+end
+
+//==============================================================================
+// next state logic
+//==============================================================================
+always @(*) begin
+    case ({state,din})
+        {idle,1'b0} : next_state = idle;
+        {idle,1'b1} : next_state = bit1;
+        {bit1,1'b0} : next_state = bit2;
+        {bit1,1'b1} : next_state = bit1;
+        {bit2,1'b0} : next_state = bit3;
+        {bit2,1'b1} : next_state = bit1;
+        {bit3,1'b0} : next_state = idle;
+        {bit3,1'b1} : next_state = bit4;
+        {bit4,1'b0} : next_state = bit5;
+        {bit4,1'b1} : next_state = bit1;
+        {bit5,1'b0} : next_state = bit3;
+        {bit5,1'b1} : next_state = bit1;
+        default	 : next_state = idle;
+    endcase
+end
+
+//==============================================================================
+// output
+//==============================================================================
+always @(posedge clk or negedge rst_n) begin
+    if (rst_n == 1'b0) begin
+        // reset
+        flag    <=  0;
+    end
+
+    else if (next_state == bit5) begin
+        flag    <=  1;
+    end
+
+    else begin
+        flag    <=  0;
+    end
+end
+
+endmodule
